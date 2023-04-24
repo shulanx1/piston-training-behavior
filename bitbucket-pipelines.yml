@@ -1,0 +1,16 @@
+#  Template NodeJS build
+
+#  This template allows you to validate your NodeJS code.
+#  The workflow allows running tests and code linting on the default branch.
+
+pipelines:
+  default:
+    - step:
+        name: Sync GitHub Mirror
+        image: alpine/git:latest
+        clone:
+          enabled: false
+        script:
+          - git clone --bare git@bitbucket.org:ShulanX/piston training behavior.git
+          - cd l5_beta.git
+          - git push --mirror git@github.com:shulanx1/piston training behavior.git
