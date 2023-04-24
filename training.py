@@ -15,9 +15,9 @@ Argv[4]:
     0: training phase 0 (added), GO stim only, water delivered only when lick
     1: training phase 1, just record running & licking behavior
     2: training phase 2, GOwhisker stim, water provided when stim is given
-    3: training phase 3, both whisker stim (50%), reward only with correct detection
-    4: testing valve, 5 release of water with 1s each
-    5: testing piston
+    3: training phase 3 (recording phase), both whisker stim (50%), reward only with correct detection
+    4: training phase 3_0 (added), both whisker stim (50%), no timeout for FA
+    5: recording phase with optogenetic 
 """
 
 
@@ -35,33 +35,41 @@ from playsound import playsound
 from datetime import datetime
 
 #-----------------------------------change to GO trial portion here---------------------------------
-phase0_GO_portion = 0.5
+phase3_0_GO_portion = 0.5
 phase3_GO_portion = 0.8
 opto_GO_portion = 0.7
+cue_delay = 2 # time delay between cue and piston stim
 #---------------------------------------------------------------------------------------------------
 
-"""
-def phase0(ser):
+
+def phase0(ser): # GO stim only, reward only when licking
+    audio = Path().cwd() / "cue.wav"
     try:
         while True:
+#           ser.write(bytes('6', 'utf-8'))
+            time.sleep(cue_delay)
             ser.write(bytes('2', 'utf-8'))
             tsleep = uniform.rvs(size = 1)*10+10
             time.sleep(int(tsleep))
     except KeyboardInterrupt:
         ser.flush()
         ser.close()
-"""
 
-def phase2(ser):
+
+def phase2(ser): # GO stim only, reward given regardless of licking
+    audio = Path().cwd() / "cue.wav"
     try:
         while True:
+#           ser.write(bytes('6', 'utf-8'))
+            time.sleep(cue_delay)
             ser.write(bytes('1', 'utf-8'))
             tsleep = uniform.rvs(size = 1)*10+10
             time.sleep(int(tsleep))
     except KeyboardInterrupt:
         ser.flush()
         ser.close()
-    
+ 
+""" 
 def phase0(ser):
     try:
         while True:
@@ -75,11 +83,31 @@ def phase0(ser):
     except KeyboardInterrupt:
         ser.flush()
         ser.close()
-        
-def phase3(ser):
+""" 
+def phase3_0(ser):  # GO + NOGO, no timeout when NOGO
+    audio = Path().cwd() / "cue.wav"
     try:
         while True:
             uniform.random_state = RandomState(seed = None)
+            ser.write(bytes('6', 'utf-8'))
+            time.sleep(cue_delay)
+            if uniform.rvs(size = 1) <= phase3_0_GO_portion:
+                ser.write(bytes('1', 'utf-8'))
+            else:
+                ser.write(bytes('7', 'utf-8'))
+            tsleep = uniform.rvs(size = 1)*10+10
+            time.sleep(int(tsleep))
+    except KeyboardInterrupt:
+        ser.flush()
+        ser.close()
+        
+def phase3(ser):  # GO + NOGO, timeout when NOGO
+    audio = Path().cwd() / "cue.wav"
+    try:
+        while True:
+            uniform.random_state = RandomState(seed = None)
+  #          ser.write(bytes('6', 'utf-8'))
+            time.sleep(cue_delay)
             if uniform.rvs(size = 1) <= phase3_GO_portion:
                 ser.write(bytes('2', 'utf-8'))
             else:
@@ -91,10 +119,13 @@ def phase3(ser):
         ser.close()
 
 def phase3_opto(ser):
+    audio = Path().cwd() / "cue.wav"
     try:
         while True:
             uniform.random_state = RandomState(seed = None)
             a = uniform.rvs(size = 2)
+#            ser.write(bytes('6', 'utf-8'))
+            time.sleep(cue_delay)
             if (a[0] <= opto_GO_portion) and (a[1]<=0.5):
                 ser.write(bytes('2', 'utf-8'))
             elif (a[0] > opto_GO_portion) and (a[1]<=0.5):
@@ -129,13 +160,13 @@ def play_white_noise(audio):
     
 count = 0
 data = []
-audio = Path().cwd() / "white_gaussian_noise.wav"
+audio = Path().cwd() / "brownnoise.wav"
 timestamp = datetime.now().strftime("%Y_%m_%d_%I.%M.%p")
-# background_noise_task = Thread(target = play_white_noise, args = (audio, ))
-# background_noise_task.start()
+background_noise_task = Thread(target = play_white_noise, args = (audio, ))
+background_noise_task.start()
 if int(sys.argv[3]) == 1:
     with open(sys.argv[2]+"_phase1_"+timestamp+".csv", "w") as f:
-        with serial.Serial(port=sys.argv[1], baudrate=9600,timeout=1) as ser:
+        with serial.Serial(port=sys.argv[1], baudrate=115200,timeout=1) as ser:
             ser.flush()
             try:
                 while True:
@@ -151,7 +182,7 @@ if int(sys.argv[3]) == 1:
                             f.flush()
                         except:
                             f.flush()
-                            f.close()
+                            # f.close()
                             continue
             except KeyboardInterrupt:
                 print('interrupt\n')
@@ -163,7 +194,7 @@ if int(sys.argv[3]) == 1:
                 # background_noise_task.join()
 elif int(sys.argv[3]) == 2:
     with open(sys.argv[2]+"_phase2_"+timestamp+".csv", "w") as f:
-        with serial.Serial(port=sys.argv[1], baudrate=9600,timeout=1) as ser:
+        with serial.Serial(port=sys.argv[1], baudrate=115200,timeout=1) as ser:
             ser.flush()
             task = Thread(target = phase2, args = (ser, ))
             task.start()
@@ -180,7 +211,7 @@ elif int(sys.argv[3]) == 2:
                         except:
                             
                             f.flush()
-                            f.close()
+                            # f.close()
                             continue
             except KeyboardInterrupt:
                 print('interrupt\n')
@@ -193,7 +224,7 @@ elif int(sys.argv[3]) == 2:
                 ser.close()
 elif int(sys.argv[3]) == 0:
     with open(sys.argv[2]+"_phase0_"+timestamp+".csv", "w") as f:
-        with serial.Serial(port=sys.argv[1], baudrate=9600,timeout=1) as ser:
+        with serial.Serial(port=sys.argv[1], baudrate=115200,timeout=1) as ser:
             ser.flush()
             task = Thread(target = phase0, args = (ser, ))
             task.start()
@@ -210,7 +241,37 @@ elif int(sys.argv[3]) == 0:
                         except:
                             
                             f.flush()
-                            f.close()
+                            # f.close()
+                            continue
+            except KeyboardInterrupt:
+                print('interrupt\n')
+                f.flush()
+                f.close()
+            finally:      
+                task.join() 
+                # background_noise_task.join()
+                ser.flush()
+                ser.close()
+elif int(sys.argv[3]) == 4:
+    with open(sys.argv[2]+"_phase3_0_"+timestamp+".csv", "w") as f:
+        with serial.Serial(port=sys.argv[1], baudrate=115200,timeout=1) as ser:
+            ser.flush()
+            task = Thread(target = phase3_0, args = (ser, ))
+            task.start()
+            try:
+                while True:
+                    if ser.in_waiting > 0:
+                        decoded_bytes= ser.readline().decode('utf-8').rstrip()
+                        try:
+                            writer = csv.writer(f)
+                            writer.writerow([decoded_bytes])
+                            print(decoded_bytes)
+                            count = count+1
+                            f.flush()
+                        except:
+                            
+                            f.flush()
+                            # f.close()
                             continue
             except KeyboardInterrupt:
                 print('interrupt\n')
@@ -223,7 +284,7 @@ elif int(sys.argv[3]) == 0:
                 ser.close()
 elif int(sys.argv[3]) == 3:
     with open(sys.argv[2]+"_phase3_"+timestamp+".csv", "w") as f:
-        with serial.Serial(port=sys.argv[1], baudrate=9600,timeout=1) as ser:
+        with serial.Serial(port=sys.argv[1], baudrate=115200,timeout=1) as ser:
             ser.flush()
             task = Thread(target = phase3, args = (ser, ))
             task.start()
@@ -239,7 +300,7 @@ elif int(sys.argv[3]) == 3:
                             f.flush()
                         except:
                             f.flush()
-                            f.close()
+                            # f.close()
                             continue
             except KeyboardInterrupt:
                 print('interrupt\n')
@@ -250,9 +311,9 @@ elif int(sys.argv[3]) == 3:
                 task.join()
                 ser.flush()
                 ser.close()
-elif int(sys.argv[3]) == 4:
+elif int(sys.argv[3]) == 5:
     with open(sys.argv[2]+"_phase3_opto"+timestamp+".csv", "w") as f:
-        with serial.Serial(port=sys.argv[1], baudrate=9600,timeout=1) as ser:
+        with serial.Serial(port=sys.argv[1], baudrate=115200,timeout=1) as ser:
             ser.flush()
             task = Thread(target = phase3_opto, args = (ser, ))
             task.start()
@@ -268,7 +329,7 @@ elif int(sys.argv[3]) == 4:
                             f.flush()
                         except:
                             f.flush()
-                            f.close()
+                            # f.close()
                             continue
             except KeyboardInterrupt:
                 print('interrupt\n')
@@ -312,7 +373,7 @@ elif int(sys.argv[3]) == 5:
                 """
      
 else:
-    raise ValueError('Wrong values for the phase, choose between 0, 1 and 2')
+    raise ValueError('Wrong values for the phase, choose between 0 to 5')
 
     
     
