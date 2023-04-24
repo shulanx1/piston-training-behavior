@@ -12,5 +12,5 @@ pipelines:
           enabled: false
         script:
           - git clone --bare git@bitbucket.org:ShulanX/piston training behavior.git
-          - cd l5_beta.git
+          - cd piston training behavior.git
           - git push --mirror git@github.com:shulanx1/piston-training-behavior.git
