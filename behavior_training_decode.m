@@ -1,10 +1,9 @@
 clear all
 
-fpath = 'Z:\data\shulan\animal training\piston_twowhisker\#23776F\New folder';
-phase = '3_0';
-animal = '#23776F';
-previous_state_num = 10;
-teach_ratio = 0.5;  % teaching signal is given when performance is worth than 0.5
+fpath = 'Z:\data\shulan\animal training\piston_twowhisker\#23777F\New folder'; % folder where the files are saved
+phase = '1';   % 1, 2 or 3
+animal = '#23777F';   % ear tag number
+
 
 files = dir(fullfile(fpath,'*.csv'));
 idx_f = [];
@@ -79,106 +78,67 @@ if phase=='1'   % lick for reward
         data(i).lick_time = data(i).t(lick_idx);
         data(i).lick_rate = length(lick_idx)/(data(i).t(end)/60);  % lick/min
     end
-elseif phase=='2' % GO stimuli with teaching signal
-    for i = 1:length(data)
-        GO_perform = data(i).GOperformance(find(diff(data(i).GOperformance)~=0)+1);
-        GO_time = data(i).t(find(diff(data(i).GOperformance)~=0)+1);
-        current_perform = bitget(GO_perform, 1);
-        data(i).detect_rate = length(find(current_perform>0))/length(current_perform);
-        data(i).detect_time = GO_time(find(current_perform>0));
-        data(i).trial_time = GO_time;
-        data(i).teach_time = [];
-        for j = 1:length(GO_perform)
-            if length(find(bitget(GO_perform(j), [10:-1:1])>0))<=previous_state_num*teach_ratio
-                data(i).teach_time = [data(i).teach_time, GO_time(j)];
+
+elseif phase == '2' % GO & NOGO stimuli,with teaching signal
+    for i = [1:length(data)]
+        data(i).GO_trial_start = find(diff(data(i).pistonGO)>0)+1;
+        data(i).GO_trial_end = find(diff(data(i).pistonGO)<0)+1;
+        data(i).NOGO_trial_start = find(diff(data(i).pistonNOGO)>0)+1;
+        data(i).NOGO_trial_end = find(diff(data(i).pistonNOGO)<0)+1;
+        data(i).hit_rate = data(i).GOperformance(find(diff(data(i).GOperformance)~=0)+1);
+        data(i).hit_time = data(i).t(find(diff(data(i).GOperformance)~=0)+1);
+        data(i).fa_rate = data(i).NOGOperformance(find(diff(data(i).NOGOperformance)~=0)+1);
+        data(i).fa_time = data(i).t(find(diff(data(i).NOGOperformance)~=0)+1);
+        
+        if length(data(i).GO_trial_start)> length(data(i).GO_trial_end)
+            data(i).GO_trial_end(length(data(i).GO_trial_end)+1) = length(data(i).t);
+        end
+        data(i).true_hit_rate = zeros(size(data(i).GO_trial_start));
+        data(i).true_hit_time = zeros(size(data(i).GO_trial_start));
+        count = 0;
+        for j = 1:length(data(i).GO_trial_start)
+            if find(data(i).lick(data(i).GO_trial_start(j):data(i).GO_trial_end(j)))>1
+                count = count + 1;
+                data(i).true_hit_rate(j) = count + 1;
+                data(i).true_hit_time(j) = data(i).t(data(i).GO_trial_end(j));
             end
         end
-    end
-
-elseif phase =='0' % GO stimuli without teaching signal
-    for i = 1:length(data)
-        GO_trial_num = length(find(diff(data(i).pistonGO)>0));
-        GO_perform = data(i).GOperformance(find(diff(data(i).GOperformance)~=0)+1);
-        GO_time = data(i).t(find(diff(data(i).GOperformance)~=0)+1);
-        data(i).detect_rate = length(find(mod(GO_perfom,2)>0))/GO_trial_num;
-        data(i).detect_time = GO_time(find(mod(GO_perfom,2)>0));
-        data(i).trial_time = GO_time;
-    end
-
-elseif phase == '3_0' % GO & NOGO stimuli,with teaching signal
-    for i = [1:length(data)]
-
-        GO_perform = data(i).GOperformance(find(abs(diff(data(i).GOperformance))>1)+1);
-        GO_time = data(i).t(find(abs(diff(data(i).GOperformance))>1)+1);
-        current_perform = bitget(GO_perform, 1);         
-        current_teach = bitget(GO_perform, 16);  % modifed 04/17/23, use on date after that only
-        data(i).hit_rate = length(find(current_perform>0))/length(current_perform);
-        data(i).hit_time = GO_time(find(current_perform>0));
-        data(i).GO_trial_time = GO_time;
-        data(i).GO_teach_time = GO_time(find(current_teach>0));
-
-        end
-        data(i).true_hit_rate = 0;   % hit without teach signal
-        data(i).true_hit_time = [];
-        for j = 1:length(data(i).hit_time)
-            if isempty(find(data(i).GO_teach_time==data(i).hit_time(j)))
-                data(i).true_hit_time = [data(i).true_hit_time, data(i).hit_time(j)];
-            end
-        end
-        data(i).true_hit_rate = length(data(i).true_hit_time)/length(GO_time);
         
-        NOGO_perform = data(i).NOGOperformance(find(abs(diff(data(i).NOGOperformance))>1)+1);
-        NOGO_time = data(i).t(find(abs(diff(data(i).NOGOperformance))>1)+1);
-        current_perform = bitget(NOGO_perform, 1);
-        current_teach = bitget(NOGO_perform, 16);  % modifed 04/17/23, use on date after that only
-        data(i).fa_rate = length(find(current_perform==1))/length(current_perform);
-        data(i).fa_time = NOGO_time(find(current_perform==1));
-        data(i).NOGO_trial_time = NOGO_time;
-		data(i).NOGO_teach_time = NOGO_time(find(current_teach>0));
-
-        end
-        data(i).GO_teach_rate = length(data(i).GO_teach_time)/length(GO_time);
-        data(i).NOGO_teach_rate = length(data(i).NOGO_teach_time)/length(NOGO_time);
-        
-        edges =  0:10*60:data(i).t(end);
-        hit_hist = histcounts(data(i).true_hit_time, edges);
-        GO_hist = histcounts(data(i).GO_trial_time, edges);
-        fa_hist = histcounts(data(i).fa_time, edges);
-        NOGO_hist = histcounts(data(i).NOGO_trial_time, edges);
-        data(i).ROC = [fa_hist./NOGO_hist; hit_hist./GO_hist];
-        data(i).ROC(isnan(data(i).ROC))=0;
-        data(i).ROC = data(i).ROC';
-        data(i).ROC = sortrows(data(i).ROC,1);
-    end
-
-
-elseif phase == '3' % GO & NOGO stimuli, reward at hit
-    for i = [1:length(data)]
-        GO_perform = data(i).GOperformance(find(abs(diff(data(i).GOperformance))>1)+1);
-        GO_time = data(i).t(find(abs(diff(data(i).GOperformance))>1)+1);
-        current_perform = bitget(GO_perform, 1);
-        data(i).hit_rate = length(find(current_perform>0))/length(current_perform);
-        data(i).hit_time = GO_time(find(current_perform>0));
-        data(i).GO_trial_time = GO_time;
-
-        NOGO_perform = data(i).NOGOperformance(find(abs(diff(data(i).NOGOperformance))>1)+1);
-        NOGO_time = data(i).t(find(abs(diff(data(i).NOGOperformance))>1)+1);
-        current_perform = bitget(NOGO_perform, 1);
-        data(i).fa_rate = length(find(current_perform==1))/length(current_perform);
-        data(i).fa_time = NOGO_time(find(current_perform==1));
-        data(i).NOGO_trial_time = NOGO_time;
-
-        
-        edges =  0:10*60:data(i).t(end);
+        edges =  0:5*60:data(i).t(end);
         hit_hist = histcounts(data(i).hit_time, edges);
-        GO_hist = histcounts(data(i).GO_trial_time, edges);
+        GO_hist = histcounts(data(i).t(data(i).GO_trial_end), edges);
         fa_hist = histcounts(data(i).fa_time, edges);
-        NOGO_hist = histcounts(data(i).NOGO_trial_time, edges);
+        NOGO_hist = histcounts(data(i).t(data(i).NOGO_trial_end), edges);
         data(i).ROC = [fa_hist./NOGO_hist; hit_hist./GO_hist];
         data(i).ROC(isnan(data(i).ROC))=0;
         data(i).ROC = data(i).ROC';
         data(i).ROC = sortrows(data(i).ROC,1);
     end
+
+
+elseif phase == '3' % GO & NOGO stimuli,without teaching signal
+    for i = [1:length(data)]
+        data(i).GO_trial_start = find(diff(data(i).pistonGO)>0)+1;
+        data(i).GO_trial_end = find(diff(data(i).pistonGO)<0)+1;
+        data(i).NOGO_trial_start = find(diff(data(i).pistonNOGO)>0)+1;
+        data(i).NOGO_trial_end = find(diff(data(i).pistonNOGO)<0)+1;
+        data(i).hit_rate = data(i).GOperformance(find(diff(data(i).GOperformance)~=0)+1);
+        data(i).hit_time = data(i).t(find(diff(data(i).GOperformance)~=0)+1);
+        data(i).fa_rate = data(i).NOGOperformance(find(diff(data(i).NOGOperformance)~=0)+1);
+        data(i).fa_time = data(i).t(find(diff(data(i).NOGOperformance)~=0)+1);
+        
+        edges =  0:5*60:data(i).t(end);
+        hit_hist = histcounts(data(i).hit_time, edges);
+        GO_hist = histcounts(data(i).t(data(i).GO_trial_end), edges);
+        fa_hist = histcounts(data(i).fa_time, edges);
+        NOGO_hist = histcounts(data(i).t(data(i).NOGO_trial_end), edges);
+        data(i).ROC = [fa_hist./NOGO_hist; hit_hist./GO_hist];
+        data(i).ROC(isnan(data(i).ROC))=0;
+        data(i).ROC = data(i).ROC';
+        data(i).ROC = sortrows(data(i).ROC,1);
+    end
+
+
     
 end
 
