@@ -10,7 +10,7 @@
 
 ### Hardware on the circuit board: ###
 * 24 V piston air pressure regulator: https://www.smcpneumatics.com/V114T-5LZ-M5.html
-* 24 VDC power relay: digikey T1258-5-ND
+* 24 VDC power relay: digikey 255-5324-5-ND
 * dual channel diod: digikey 1655-BAT54CCT-ND
 * dual channel NTN transister: digikey MBT3904DW1T1G
 * 12 V water valve: Nresearch 161K011
@@ -18,6 +18,12 @@
 * 5V speaker (with amplifier): digikey 1528-1746-ND
 * vibration motor: 3V
 * rotary encoder: https://www.usdigital.com/products/encoders/incremental/rotary/shaft/H5
+* piezo based lickometer:<br />
+single-rail op-amp: TLV2771CDBVR<br />
+shunt regulator: ATL431BQDBZR<br />
+non-inverting svhmitt trigger: SN74LVC1G17DBVR<br />
+trimmer resistor: digikey 3362P-504LF-ND<br />
+
 
 
 ### Files ###

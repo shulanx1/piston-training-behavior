@@ -383,7 +383,7 @@ void loop() {
             if (digitalRead2(lick_sensor)==HIGH){
               lick_state = 1;
             }
-            lick_state = 1;
+            else{lick_state = 0;}
             rotary_decode();
             delayMicroseconds(wait_dur);
             count = count + 1;
@@ -398,7 +398,7 @@ void loop() {
               lick_state = 1;
               previous_go_performance = previous_go_performance | 1; 
             }
-            lick_state = 1;
+            else{lick_state = 0;}
             rotary_decode();
             delayMicroseconds(wait_dur);
             count = count + 1;
