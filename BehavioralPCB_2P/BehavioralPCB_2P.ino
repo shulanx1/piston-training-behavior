@@ -32,8 +32,10 @@ int nogo_stim_state = 0;
 int go_teach = 0;
 int nogo_teach = 0;
 int previousState = LOW;
+int piston_test_previousState = LOW;
 int LED2 = A2;
 int flag = 0;
+int piston_test_flag = 0;
 const int respond_window = 1000;  // time window (ms) after sensory stimuli that if lick is detected reward will be given
 const int baseline_time = 3000;  // duration of baseline aquisition before trial starts
 const int poststim_time = 4000;
@@ -220,27 +222,30 @@ void loop() {
           go_stim_state = 0;         
           if (previous_go_performance & 1 == 1){
             hit_trials = hit_trials + 1;
-          }
-          go_teach_signal();
-          if (go_teach ==0){
-            hit_rate = (float) hit_trials/GO_trials;
-          }
-          if ((go_teach == 1) || (previous_go_performance & 1 == 1)){
             rotary_decode();
             valve_state = 1;
             digitalWrite2(valve_enable, HIGH);
             delay(reward_dur);
-            digitalWrite2(valve_enable, LOW);
-            valve_state = 0;    
+            digitalWrite2(valve_enable, LOW);  
             rotary_decode();
-          }        
-          if (go_teach == 1){
+            hit_rate = (float) hit_trials/GO_trials;
+          }
+          else {
+          go_teach_signal();
+          hit_rate = (float) hit_trials/GO_trials;
+          if ((go_teach == 1)){
+            rotary_decode();
+            valve_state = 1;
+            digitalWrite2(valve_enable, HIGH);
+            delay(reward_dur);
+            digitalWrite2(valve_enable, LOW);   
+            rotary_decode();
             previous_go_performance = previous_go_performance | (1 << 15);
             while (count < teach_dur){ // small time out session after teach signal
               if (digitalRead2(lick_sensor)==HIGH){
                 lick_state = 1;
                 previous_go_performance = previous_go_performance | 1;
-                hit_rate = (float) (hit_trials+1)/GO_trials;
+                //hit_rate = (float) (hit_trials+1)/GO_trials;
               }
               else{lick_state = 0;}
             rotary_decode();
@@ -253,8 +258,10 @@ void loop() {
             hit_rate = (float) (hit_trials)/GO_trials;
             serialFlush();
           }
+            }
                 
           rotary_decode(); 
+          
           lick_state = 0;
           count = 0;
             while (count < poststim_time){
@@ -266,7 +273,9 @@ void loop() {
             delayMicroseconds(wait_dur);
             count = count + 1;
           }   //baseline
+          valve_state = 0;  
           digitalWrite2(output_trig, LOW);
+          
           break;
         
         case '7':   
@@ -324,9 +333,10 @@ void loop() {
           
           if (previous_nogo_performance & 1 == 1){
             fa_trials = fa_trials + 1;
+            nogo_teach_signal();
           }
+          
           fa_rate = (float) fa_trials/NOGO_trials;
-          nogo_teach_signal();
           if (previous_nogo_performance & 1 == 1){
             if (nogo_teach==1) {
             previous_nogo_performance = previous_nogo_performance | (1 << 15);    // change first digit to 1 if there's teaching signal
@@ -433,11 +443,11 @@ void loop() {
             digitalWrite2(valve_enable, HIGH);
             delay(reward_dur);
             digitalWrite2(valve_enable, LOW);
-            valve_state = 0; 
+           // valve_state = 0; 
             rotary_decode();
           }
 
-          valve_state = 0;
+          //valve_state = 0;
           lick_state = 0;
           count = 0;
             while (count < poststim_time){
@@ -450,6 +460,7 @@ void loop() {
             count = count + 1;
           }   //baseline
           digitalWrite2(output_trig, LOW);
+          valve_state = 0;  
           break;
           
         case '3':   // NOGO stim, 10s time out if FA
@@ -634,10 +645,44 @@ void loop() {
         delay(10000);
         digitalWrite2(valve_enable, LOW);
         break;
-    
-    }
+
+      case 'g': //GO piston
+        piston_test_previousState = LOW;
+        piston_test_flag = 1;
+        while (piston_test_flag){
+          if ((digitalRead2(trigger)==HIGH) && (piston_test_previousState == LOW)){
+            digitalWrite2(pistonGO, HIGH);
+            piston_test_previousState = HIGH;
+            }
+          else if ((digitalRead2(trigger)==LOW) && (piston_test_previousState == HIGH)){
+            piston_test_flag=0;
+            piston_test_previousState = LOW;
+            digitalWrite2(pistonGO, LOW);
+            
+          }   
+        }
+        break;
+
+      case 'n': //NOGO piston
+        piston_test_previousState = LOW;
+        piston_test_flag = 1;
+        while (piston_test_flag){
+          if ((digitalRead2(trigger)==HIGH) && (piston_test_previousState == LOW)){
+            piston_test_previousState = HIGH;
+            digitalWrite2(pistonNOGO, HIGH);
+            }
+          else if ((digitalRead2(trigger)==LOW) && (piston_test_previousState == HIGH)){
+            piston_test_flag = 0;
+            piston_test_previousState = LOW;
+            digitalWrite2(pistonNOGO, LOW);
+            
+          }    
+        }
+        //piston_test_previousState == LOW;
+        break;
       
   }
+}
 }
 
 void rotary_decode(){
@@ -700,6 +745,7 @@ void rotary_decode(){
     encoder_flag = 0;
   }
 }
+
 
 
 void serialFlush(){

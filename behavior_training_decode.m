@@ -1,9 +1,10 @@
 clear all
 
-fpath = 'Z:\data\shulan\animal training\piston_twowhisker\#23777F\New folder'; % folder where the files are saved
-phase = '1';   % 1, 2 or 3
-animal = '#23777F';   % ear tag number
-
+fpath = 'Z:\data\shulan\animal training\piston_twowhisker\#23440F';
+phase = '2';   % 1, 2 or 3
+animal = '#23440F';
+% previous_state_num = 10;
+% teach_ratio = 0.5;  % teaching signal is given when performance is worth than 0.5
 
 files = dir(fullfile(fpath,'*.csv'));
 idx_f = [];
@@ -33,8 +34,8 @@ for i = 1:length(files_phase)
     data(data_count).valve = T.Var3;
     data(data_count).pistonGO = T.Var4;
     data(data_count).pistonNOGO = T.Var5;
-    data(data_count).GOperformance = uint16(T.Var6);
-    data(data_count).NOGOperformance = uint16(T.Var7);
+    data(data_count).GOperformance = T.Var6;
+    data(data_count).NOGOperformance = T.Var7;
     data(data_count).t = T.Var8;
     current_file = i;
     for j = i+1:length(files_phase)
@@ -49,8 +50,8 @@ for i = 1:length(files_phase)
         data(data_count).valve = [data(data_count).valve; T.Var3];
         data(data_count).pistonGO = [data(data_count).pistonGO; T.Var4];
         data(data_count).pistonNOGO = [data(data_count).pistonNOGO; T.Var5];
-        data(data_count).GOperformance = [data(data_count).GOperformance; uint16(T.Var6)];
-        data(data_count).NOGOperformance = [data(data_count).NOGOperformance; uint16(T.Var7)];
+        data(data_count).GOperformance = [data(data_count).GOperformance; T.Var6];
+        data(data_count).NOGOperformance = [data(data_count).NOGOperformance; T.Var7];
         data(data_count).t = [data(data_count).t; data(data_count).t(end)+T.Var8];
         current_file = j;
     end
@@ -85,22 +86,20 @@ elseif phase == '2' % GO & NOGO stimuli,with teaching signal
         data(i).GO_trial_end = find(diff(data(i).pistonGO)<0)+1;
         data(i).NOGO_trial_start = find(diff(data(i).pistonNOGO)>0)+1;
         data(i).NOGO_trial_end = find(diff(data(i).pistonNOGO)<0)+1;
-        data(i).hit_rate = data(i).GOperformance(find(diff(data(i).GOperformance)~=0)+1);
-        data(i).hit_time = data(i).t(find(diff(data(i).GOperformance)~=0)+1);
-        data(i).fa_rate = data(i).NOGOperformance(find(diff(data(i).NOGOperformance)~=0)+1);
-        data(i).fa_time = data(i).t(find(diff(data(i).NOGOperformance)~=0)+1);
+        data(i).hit_rate = data(i).GOperformance(find(diff(data(i).GOperformance)>0)+1);
+        data(i).hit_time = data(i).t(find(diff(data(i).GOperformance)>0)+1);
+        data(i).fa_rate = data(i).NOGOperformance(find(diff(data(i).NOGOperformance)>0)+1);
+        data(i).fa_time = data(i).t(find(diff(data(i).NOGOperformance)>0)+1);
         
         if length(data(i).GO_trial_start)> length(data(i).GO_trial_end)
             data(i).GO_trial_end(length(data(i).GO_trial_end)+1) = length(data(i).t);
         end
-        data(i).true_hit_rate = zeros(size(data(i).GO_trial_start));
-        data(i).true_hit_time = zeros(size(data(i).GO_trial_start));
         count = 0;
         for j = 1:length(data(i).GO_trial_start)
-            if find(data(i).lick(data(i).GO_trial_start(j):data(i).GO_trial_end(j)))>1
+            if length(find(data(i).lick(data(i).GO_trial_start(j):data(i).GO_trial_end(j))))>1
                 count = count + 1;
-                data(i).true_hit_rate(j) = count + 1;
-                data(i).true_hit_time(j) = data(i).t(data(i).GO_trial_end(j));
+                data(i).true_hit_rate(count) = count/j;
+                data(i).true_hit_time(count) = data(i).t(data(i).GO_trial_end(j));
             end
         end
         
@@ -122,10 +121,10 @@ elseif phase == '3' % GO & NOGO stimuli,without teaching signal
         data(i).GO_trial_end = find(diff(data(i).pistonGO)<0)+1;
         data(i).NOGO_trial_start = find(diff(data(i).pistonNOGO)>0)+1;
         data(i).NOGO_trial_end = find(diff(data(i).pistonNOGO)<0)+1;
-        data(i).hit_rate = data(i).GOperformance(find(diff(data(i).GOperformance)~=0)+1);
-        data(i).hit_time = data(i).t(find(diff(data(i).GOperformance)~=0)+1);
-        data(i).fa_rate = data(i).NOGOperformance(find(diff(data(i).NOGOperformance)~=0)+1);
-        data(i).fa_time = data(i).t(find(diff(data(i).NOGOperformance)~=0)+1);
+        data(i).hit_rate = data(i).GOperformance(find(diff(data(i).GOperformance)>0)+1);
+        data(i).hit_time = data(i).t(find(diff(data(i).GOperformance)>0)+1);
+        data(i).fa_rate = data(i).NOGOperformance(find(diff(data(i).NOGOperformance)>0)+1);
+        data(i).fa_time = data(i).t(find(diff(data(i).NOGOperformance)>0)+1);
         
         edges =  0:5*60:data(i).t(end);
         hit_hist = histcounts(data(i).hit_time, edges);
