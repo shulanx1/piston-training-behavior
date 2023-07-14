@@ -59,6 +59,8 @@ on the command window, run: <br />
 * 'p': test pistons
 * 'c': test cue sound
 * 'f': flush the valve
+* 'g': GO piston, use the sliding switch to turn on and off
+* 'n': NOGO piston, use the sliding switch to turn on and off
 
 ### Arduino serial output row ###
 * 1: rotary decoder
