@@ -1,3 +1,0 @@
-(sym_lib_table
-  (lib (name Arduino_shield-eagle-import)(type Legacy)(uri ${KIPRJMOD}/Arduino_shield-eagle-import.lib)(options "")(descr ""))
-)
